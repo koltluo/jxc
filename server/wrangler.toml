@@ -1,0 +1,24 @@
+name = "jxc-api"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+
+# D1 数据库绑定
+# 首次部署前执行：npx wrangler d1 create jxc
+# 然后把返回的 database_id 填到下面
+[[d1_databases]]
+binding = "DB"
+database_name = "jxc"
+database_id = "a5a9d461-a59e-4817-8b1b-4c10e4e1d056"
+
+[vars]
+# 会话有效期：30 天（毫秒）
+SESSION_TTL_MS = "2592000000"
+
+# 允许跨域的前端来源，逗号分隔
+# 本地开发时留空会自动放行 localhost
+# 部署后必须填写 Pages 域名，否则前端跨域请求会被浏览器拦截
+#   ALLOWED_ORIGINS = "https://a00d3e02.jxc-n3e.pages.dev,https://jxc.nav8.top"
+ALLOWED_ORIGINS = "https://jxc-n3e.pages.dev,https://jxc.nav8.top"
+
+[observability]
+enabled = true

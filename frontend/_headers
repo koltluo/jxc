@@ -1,0 +1,22 @@
+# 用 Cloudflare Pages 托管本目录时的必需配置
+# 作用：让 .webmanifest 返回正确的 MIME 类型，否则浏览器可能不识别
+
+/webmanifest
+  Content-Type: application/manifest+json
+
+/*.webmanifest
+  Content-Type: application/manifest+json
+
+# Service Worker 必须可被 CDN 缓存策略放行，且不能被长期强缓存
+/sw.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+
+# HTML 入口不缓存，保证更新即时生效
+/index.html
+  Content-Type: text/html; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+
+# 静态资源可长缓存
+/*.png
+  Cache-Control: public, max-age=86400
