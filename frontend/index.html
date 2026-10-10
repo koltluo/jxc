@@ -3211,7 +3211,7 @@ function field(f, value, ctx = {}) {
   const common = `id="${id}" data-k="${esc(f.k)}" ${f.req ? 'data-req="1"' : ''} ${f.readonly ? 'readonly' : ''}`;
 
   if (f.type === 'select') {
-    const opts = (f.options || []).map(o => {
+    const opts = (f.opts || f.options || []).map(o => {
       const v = typeof o === 'string' ? o : o.value;
       const l = typeof o === 'string' ? o : o.label;
       return `<option value="${esc(v)}" ${String(v) === String(val) ? 'selected' : ''}>${esc(l)}</option>`;
