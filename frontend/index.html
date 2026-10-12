@@ -253,6 +253,14 @@ table.sheet td.sticky-l { position: sticky; left: 0; background: inherit; z-inde
   background-repeat: no-repeat; background-position: right 8px center;
   background-size: 20px; padding-right: 32px;
 }
+.field input.combo {
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235a6675'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+  background-size: 20px; padding-right: 32px; cursor: pointer;
+}
+.field input.combo[readonly] {
+  background: var(--calc-bg); color: var(--text-2); cursor: not-allowed;
+}
 .field input:focus, .field select:focus, .field textarea:focus {
   outline: 0; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(31, 78, 121, .12);
 }
@@ -3211,12 +3219,27 @@ function field(f, value, ctx = {}) {
   const common = `id="${id}" data-k="${esc(f.k)}" ${f.req ? 'data-req="1"' : ''} ${f.readonly ? 'readonly' : ''}`;
 
   if (f.type === 'select') {
-    const opts = (f.opts || f.options || []).map(o => {
-      const v = typeof o === 'string' ? o : o.value;
-      const l = typeof o === 'string' ? o : o.label;
-      return `<option value="${esc(v)}" ${String(v) === String(val) ? 'selected' : ''}>${esc(l)}</option>`;
-    }).join('');
-    input = `<select ${common} ${f.readonly ? 'disabled' : ''}>${f.placeholder !== false && !f.req ? `<option value="">— 请选择 —</option>` : ''}${opts}</select>`;
+    const list = (f.opts || f.options || []);
+    if (f.creatable) {
+      // 可输入可选择：input + datalist（HTML5 原生支持）
+      const opts = list.map(o => {
+        const v = typeof o === 'string' ? o : o.value;
+        return `<option value="${esc(v)}"></option>`;
+      }).join('');
+      const ph = f.placeholder !== false
+        ? (typeof f.placeholder === 'string' ? f.placeholder : '可选择或直接输入')
+        : '';
+      const cls = 'combo' + (f.cls ? ' ' + f.cls : '');
+      input = `<input ${common} type="text" class="${cls}" list="dl-${id}" autocomplete="off" value="${esc(val)}" placeholder="${esc(ph)}">
+        <datalist id="dl-${id}">${opts}</datalist>`;
+    } else {
+      const opts = list.map(o => {
+        const v = typeof o === 'string' ? o : o.value;
+        const l = typeof o === 'string' ? o : o.label;
+        return `<option value="${esc(v)}" ${String(v) === String(val) ? 'selected' : ''}>${esc(l)}</option>`;
+      }).join('');
+      input = `<select ${common} ${f.readonly ? 'disabled' : ''}>${f.placeholder !== false && !f.req ? `<option value="">— 请选择 —</option>` : ''}${opts}</select>`;
+    }
   } else if (f.type === 'textarea') {
     input = `<textarea ${common} rows="${f.rows || 2}" placeholder="${esc(f.placeholder || '')}">${esc(val)}</textarea>`;
   } else if (f.type === 'number') {
@@ -3597,10 +3620,10 @@ const GOODS_FIELDS = [
   { k: 'code',          label: '商品编码', type: 'text',   w: 1, req: true },
   { k: 'name',          label: '商品名称', type: 'text',   w: 2, req: true },
   { k: 'spec',          label: '规格型号', type: 'text',   w: 1.4 },
-  { k: 'category',      label: '商品类别', type: 'select', w: 1, opts: CATEGORIES },
+  { k: 'category',      label: '商品类别', type: 'select', creatable: true, w: 1, opts: CATEGORIES },
   { k: 'brand',         label: '品牌',     type: 'text',   w: 0.9 },
-  { k: 'unit1',         label: '主单位',   type: 'select', w: 0.8, opts: UNITS },
-  { k: 'unit2',         label: '辅单位',   type: 'select', w: 0.8, opts: UNITS },
+  { k: 'unit1',         label: '主单位',   type: 'select', creatable: true, w: 0.8, opts: UNITS },
+  { k: 'unit2',         label: '辅单位',   type: 'select', creatable: true, w: 0.8, opts: UNITS },
   { k: 'rate',          label: '换算率',   type: 'number', w: 0.8, hint: '1 主单位 = N 辅单位' },
   { k: 'barcode',       label: '条形码',   type: 'text',   w: 1.2 },
   { k: 'costPrice',     label: '期初成本价', type: 'money', w: 1 },
@@ -3619,13 +3642,13 @@ const CUSTOMER_FIELDS = [
   { k: 'code',     label: '客户编号', type: 'text',   req: true },
   { k: 'name',     label: '客户名称', type: 'text',   req: true },
   { k: 'short',    label: '客户简称', type: 'text' },
-  { k: 'level',    label: '客户等级', type: 'select', opts: CUSTOMER_LEVELS, hint: '决定开单时自动取价' },
+  { k: 'level',    label: '客户等级', type: 'select', creatable: true, opts: CUSTOMER_LEVELS, hint: '决定开单时自动取价' },
   { k: 'contact',  label: '联系人',   type: 'text' },
   { k: 'phone',    label: '联系电话', type: 'tel' },
   { k: 'addr',     label: '地址',     type: 'text' },
   { k: 'initAr',   label: '期初应收款', type: 'money' },
   { k: 'credit',   label: '信用额度', type: 'money' },
-  { k: 'settle',   label: '结算方式', type: 'select', opts: SETTLE_WAYS },
+  { k: 'settle',   label: '结算方式', type: 'select', creatable: true, opts: SETTLE_WAYS },
 ];
 
 // ③ 供应商资料
@@ -3637,7 +3660,7 @@ const SUPPLIER_FIELDS = [
   { k: 'phone',   label: '联系电话', type: 'tel' },
   { k: 'addr',    label: '地址',     type: 'text' },
   { k: 'initAp',  label: '期初应付款', type: 'money' },
-  { k: 'settle',  label: '结算方式', type: 'select', opts: SETTLE_WAYS },
+  { k: 'settle',  label: '结算方式', type: 'select', creatable: true, opts: SETTLE_WAYS },
   { k: 'memo',    label: '备注',     type: 'text' },
 ];
 
@@ -3645,7 +3668,7 @@ const SUPPLIER_FIELDS = [
 const ACCOUNT_FIELDS = [
   { k: 'code',    label: '账户编号', type: 'text', req: true },
   { k: 'name',    label: '账户名称', type: 'text', req: true },
-  { k: 'type',    label: '账户类型', type: 'select', opts: ACCOUNT_TYPES },
+  { k: 'type',    label: '账户类型', type: 'select', creatable: true, opts: ACCOUNT_TYPES },
   { k: 'no',      label: '账号',     type: 'text' },
   { k: 'initBal', label: '期初余额', type: 'money' },
   { k: 'memo',    label: '备注',     type: 'text' },
@@ -3717,7 +3740,7 @@ const RECEIPT_FIELDS = [
   { k: 'date',     label: '收款日期', type: 'date' },
   { k: 'account',  label: '结算账户', type: 'picker', src: 'accounts' },
   { k: 'amount',   label: '收款金额', type: 'money', req: true },
-  { k: 'way',      label: '收款方式', type: 'select', opts: PAY_WAYS },
+  { k: 'way',      label: '收款方式', type: 'select', creatable: true, opts: PAY_WAYS },
   { k: 'staff',    label: '业务员',   type: 'picker', src: 'staff' },
   { k: 'memo',     label: '备注',     type: 'text' },
 ];
@@ -3730,7 +3753,7 @@ const PAYMENT_FIELDS = [
   { k: 'date',     label: '付款日期', type: 'date' },
   { k: 'account',  label: '结算账户', type: 'picker', src: 'accounts' },
   { k: 'amount',   label: '付款金额', type: 'money', req: true },
-  { k: 'way',      label: '付款方式', type: 'select', opts: PAY_WAYS },
+  { k: 'way',      label: '付款方式', type: 'select', creatable: true, opts: PAY_WAYS },
   { k: 'staff',    label: '经办人',   type: 'picker', src: 'staff' },
   { k: 'memo',     label: '备注',     type: 'text' },
 ];
@@ -3742,7 +3765,7 @@ const OTHER_FIELDS = [
   { k: 'date',     label: '日期',     type: 'date' },
   { k: 'type',     label: '收支类型', type: 'select', opts: ['收入', '支出'] },
   { k: 'account',  label: '结算账户', type: 'picker', src: 'accounts' },
-  { k: 'category', label: '收支类别', type: 'select', opts: OTHER_CATEGORIES },
+  { k: 'category', label: '收支类别', type: 'select', creatable: true, opts: OTHER_CATEGORIES },
   { k: 'party',    label: '对方单位', type: 'text' },
   { k: 'income',   label: '收入金额', type: 'money' },
   { k: 'expense',  label: '支出金额', type: 'money' },
@@ -3759,7 +3782,7 @@ const VOUCHER_FIELDS = [
   { k: 'accountName',label: '科目名称', type: 'calc' },
   { k: 'debit',      label: '借方金额', type: 'money' },
   { k: 'credit',     label: '贷方金额', type: 'money' },
-  { k: 'source',     label: '业务来源', type: 'select', opts: VOUCHER_SOURCES },
+  { k: 'source',     label: '业务来源', type: 'select', creatable: true, opts: VOUCHER_SOURCES },
   { k: 'balance',    label: '平衡检查', type: 'calc' },
   { k: 'category',   label: '类别',     type: 'calc' },
 ];
@@ -6755,7 +6778,7 @@ function editor(container, go, rec) {
     ${field({ k: 'docNo', label: '单据编号', type: 'text' }, data.docNo)}
     ${field({ k: 'date', label: '收款日期', type: 'date' }, data.date)}
     ${field({ k: 'amount', label: '收款金额', type: 'number', req: true, step: 'any' }, data.amount)}
-    ${field({ k: 'way', label: '收款方式', type: 'select', opts: PAY_WAYS, req: true }, data.way)}
+    ${field({ k: 'way', label: '收款方式', type: 'select', creatable: true, opts: PAY_WAYS, req: true }, data.way)}
     <div class="field"><label>结算账户</label>
       <button class="btn ghost block" id="r-acct" style="justify-content:space-between;background:var(--input-bg);border-color:var(--border-strong);font-weight:400;font-size:15px;color:${data.account ? 'var(--text)' : 'var(--text-3)'};text-align:left">
         <span id="r-acct-t">${data.account ? esc(data.account) : '请选择账户'}</span><span style="opacity:.5">▾</span></button>
@@ -6968,7 +6991,7 @@ function editor(container, go, rec) {
     ${field({ k: 'docNo', label: '单据编号', type: 'text' }, data.docNo)}
     ${field({ k: 'date', label: '付款日期', type: 'date' }, data.date)}
     ${field({ k: 'amount', label: '付款金额', type: 'number', req: true, step: 'any' }, data.amount)}
-    ${field({ k: 'way', label: '付款方式', type: 'select', opts: PAY_WAYS, req: true }, data.way)}
+    ${field({ k: 'way', label: '付款方式', type: 'select', creatable: true, opts: PAY_WAYS, req: true }, data.way)}
     <div class="field"><label>结算账户</label>
       <button class="btn ghost block" id="p-acct" style="justify-content:space-between;background:var(--input-bg);border-color:var(--border-strong);font-weight:400;font-size:15px;color:${data.account ? 'var(--text)' : 'var(--text-3)'};text-align:left">
         <span id="p-acct-t">${data.account ? esc(data.account) : '请选择账户'}</span><span style="opacity:.5">▾</span></button>
@@ -7195,7 +7218,7 @@ function editor(container, go, rec) {
     ${field({ k: 'docNo', label: '单据编号', type: 'text' }, data.docNo)}
     ${field({ k: 'date', label: '日期', type: 'date' }, data.date)}
     ${field({ k: 'type', label: '收支类型', type: 'select', opts: ['收入', '支出'], req: true }, data.type)}
-    ${field({ k: 'category', label: '收支类别', type: 'select', opts: OTHER_CATEGORIES, req: true }, data.category)}
+    ${field({ k: 'category', label: '收支类别', type: 'select', creatable: true, opts: OTHER_CATEGORIES, req: true }, data.category)}
     <div class="field"><label>金额<span class="req">*</span></label>
       <input type="number" step="any" inputmode="decimal" data-k="amount" value="${num(data.income) || num(data.expense) || ''}" placeholder="0.00">
     </div>
@@ -10754,7 +10777,7 @@ const sync = __M__.get("core/sync.js");
 const { seedAll } = __M__.get("core/seed.js");
 const { matchSearch } = __M__.get("core/utils.js");
 const { start, route, go, back, render, setGuard } = __M__.get("ui/router.js");
-const { toast, setMatcher, confirmBox } = __M__.get("ui/components/ui.js");
+const { toast, setMatcher, confirmBox, popup, el } = __M__.get("ui/components/ui.js");
 const { setTextMatcher } = __M__.get("ui/components/pages.js");
 const { CFG } = __M__.get("core/constants.js");
 
@@ -10910,11 +10933,11 @@ async function loadLocalData() {
 }
 
 /**
- * 首次联机同步。三种情形：
+ * 首次联机同步。四种情形：
  *   A) 本地空、服务端空   → 什么都不做
  *   B) 本地空、服务端有   → 拉全量到本地（典型：第二台设备首次登录）
  *   C) 本地有、服务端空   → 把本地全量推上去（典型：老板先单机用了一段时间）
- *   D) 两边都有           → 以服务端为准做全量拉取，本地未同步的改动进发件箱后推送
+ *   D) 两边都有           → 弹窗让用户选择同步策略
  */
 async function firstSync() {
   const me = await api.me();
@@ -10940,16 +10963,93 @@ async function firstSync() {
       await sync.pushAll(repo.exportAll(true));
       toast('已上传到云端', 2400);
     } else {
-      await applyBootstrap(boot);   // 用户选否 → 以服务端（空）为准覆盖本地
+      await applyBootstrap(boot);
     }
   } else {
-    // D：两边都有数据 —— 以服务端为准，本地已有改动仍会在之后由发件箱补推
-    await applyBootstrap(boot);
+    // D：两边都有数据 —— 让用户选择同步策略
+    const choice = await showSyncStrategyDialog();
+    if (choice === 'server') {
+      await applyBootstrap(boot);
+    } else if (choice === 'local') {
+      await sync.pushAll(repo.exportAll(true));
+      toast('已上传到云端', 2400);
+    } else if (choice === 'merge') {
+      await smartMerge(boot);
+    } else {
+      await applyBootstrap(boot);
+    }
   }
 
   // 建立同步钩子并启动轮询
   bindSync();
   await sync.start(repo, { cursor: boot.rev || 0 });
+}
+
+function showSyncStrategyDialog() {
+  return new Promise(resolve => {
+    const p = popup({ title: '数据同步', height: 'auto' });
+    const wrap = el('div', { class: 'card-bd' });
+    wrap.appendChild(el('div', { class: 'alert info', html: '<span class="ai">ℹ️</span><span>本机和服务端都有数据，请选择同步方式：</span>' }));
+
+    const options = [
+      { key: 'merge', label: '智能合并', desc: '保留双方新增数据，冲突记录以服务端为准', cls: 'primary' },
+      { key: 'server', label: '以服务端为准', desc: '用服务端数据覆盖本机，本机独有数据将丢失', cls: '' },
+      { key: 'local', label: '以本机为准', desc: '用本机数据覆盖服务端，服务端独有数据将丢失', cls: 'danger' },
+    ];
+
+    for (const opt of options) {
+      const btn = el('button', { class: 'btn ' + opt.cls, text: opt.label, onclick: () => { p.close(); resolve(opt.key); } });
+      wrap.appendChild(el('div', { class: 'field', style: 'margin-bottom:4px' }, [btn]));
+      wrap.appendChild(el('div', { class: 'hint', style: 'margin-top:-6px;margin-bottom:10px', text: opt.desc }));
+    }
+
+    const cancelRow = el('div', { class: 'btn-row', style: 'margin-top:6px' });
+    cancelRow.appendChild(el('button', { class: 'btn ghost', text: '取消', onclick: () => { p.close(); resolve('server'); } }));
+    wrap.appendChild(cancelRow);
+
+    p.body.appendChild(wrap);
+  });
+}
+
+async function smartMerge(boot) {
+  const serverStores = boot.stores || {};
+  const localOnlyAll = {};
+  let totalLocalOnly = 0;
+
+  for (const [store, serverItems] of Object.entries(serverStores)) {
+    if (!idb.STORES[store]) continue;
+    if (!Array.isArray(serverItems)) continue;
+
+    const keyField = idb.STORES[store].key;
+    const serverKeys = new Set(serverItems.map(item => String(item[keyField])));
+    const localItems = repo.all(store) || [];
+    const localOnly = localItems.filter(item => !serverKeys.has(String(item[keyField])));
+
+    if (localOnly.length > 0) {
+      localOnlyAll[store] = localOnly;
+      totalLocalOnly += localOnly.length;
+    }
+  }
+
+  await applyBootstrap(boot);
+
+  if (totalLocalOnly === 0) {
+    toast('合并完成，无冲突', 2400);
+    return;
+  }
+
+  for (const [store, items] of Object.entries(localOnlyAll)) {
+    const keyField = idb.STORES[store].key;
+    for (const item of items) {
+      const key = String(item[keyField]);
+      repo.applyRemote(store, key, item);
+      await idb.put(store, item).catch(() => {});
+    }
+    sync.enqueue({ op: 'putMany', store, items: items.map(item => ({ key: String(item[idb.STORES[store].key]), data: item })) });
+  }
+
+  repo.flushRemote();
+  toast(`合并完成，已保留本机 ${totalLocalOnly} 条独有数据并推送至云端`, 3200);
 }
 
 /**
